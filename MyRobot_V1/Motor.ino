@@ -93,6 +93,18 @@ void moveLeft(int in1, int in2, int enA, int in3, int in4, int enB) {
 }
 
 
+void turnRobotInPlace(int in1, int in2, int enA, int in3, int in4, int enB) {
+    digitalWrite(int1, LOW);
+    digitalWrite(int2, HIGH);
+    digitalWrite(enA, HIGH);
+
+    digitalWrite(int3, HIGH);
+    digitalWrite(int4, LOW);
+    digitalWrite(enB, HIGH); 
+
+}
+
+
 
 
 
