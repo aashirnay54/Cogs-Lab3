@@ -40,13 +40,13 @@ void stop(int in1, int in2, int enA) {
 
 
 void moveForward(int in1, int in2, int enA, int in3, int in4, int enB) {
-    digitalWrite(int1, LOW);
-    digitalWrite(int2, HIGH);
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
     digitalWrite(enA, HIGH);  
 
 
-    digitalWrite(int3, LOW);
-    digitalWrite(int4, HIGH);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
     digitalWrite(enB, HIGH);  
 }
 
@@ -54,13 +54,13 @@ void moveForward(int in1, int in2, int enA, int in3, int in4, int enB) {
 
 void moveBackward(int in1, int in2, int enA, int in3, int in4, int enB) {
 
-    digitalWrite(int1, HIGH);
-    digitalWrite(int2, LOW);
+    digitalWrite(in1, HIGH);
+    digitalWrite(in2, LOW);
     digitalWrite(enA, HIGH);  
 
 
-    digitalWrite(int3, HIGH);
-    digitalWrite(int4, LOW);
+    digitalWrite(in3, HIGH);
+    digitalWrite(in4, LOW);
     digitalWrite(enB, HIGH); 
 
 }
@@ -68,38 +68,38 @@ void moveBackward(int in1, int in2, int enA, int in3, int in4, int enB) {
 
 void moveRight(int in1, int in2, int enA, int in3, int in4, int enB) {
 
-    digitalWrite(int1, LOW);
-    digitalWrite(int2, HIGH);
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
     digitalWrite(enA, HIGH);  
 
 
-    digitalWrite(int3, LOW);
-    digitalWrite(int4, HIGH);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
     digitalWrite(enB, LOW); 
 
 }
 
 void moveLeft(int in1, int in2, int enA, int in3, int in4, int enB) {
 
-    digitalWrite(int1, LOW);
-    digitalWrite(int2, HIGH);
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
     digitalWrite(enA, LOW);  
 
 
-    digitalWrite(int3, LOW);
-    digitalWrite(int4, HIGH);
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
     digitalWrite(enB, HIGH); 
 
 }
 
 
 void turnRobotInPlace(int in1, int in2, int enA, int in3, int in4, int enB) {
-    digitalWrite(int1, LOW);
-    digitalWrite(int2, HIGH);
+    digitalWrite(in1, LOW);
+    digitalWrite(in2, HIGH);
     digitalWrite(enA, HIGH);
 
-    digitalWrite(int3, HIGH);
-    digitalWrite(int4, LOW);
+    digitalWrite(in3, HIGH);
+    digitalWrite(in4, LOW);
     digitalWrite(enB, HIGH); 
 
 }
