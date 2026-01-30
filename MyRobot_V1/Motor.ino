@@ -30,10 +30,13 @@ void drive(int in1, int in2, int enA) {
     digitalWrite(enA, HIGH);  // Enable motor driver
 }
 
-void stop(int in1, int in2, int enA) {
+void stop(int in1, int in2, int 3, int 4, int enA, int enB) {
     digitalWrite(in1, LOW);   // Direction control: IN1
     digitalWrite(in2, HIGH);  // Direction control: IN2 (sets rotation direction)
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
     digitalWrite(enA, LOW);   // Disable motor driver
+    digitalWrite(enB, LOW);
 }
 
 // TODO: add your own driving functions here
@@ -42,12 +45,13 @@ void stop(int in1, int in2, int enA) {
 void moveForward(int in1, int in2, int enA, int in3, int in4, int enB) {
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
-    digitalWrite(enA, HIGH);  
+    analogWrite(enA, 255);   // max speed
 
 
     digitalWrite(in3, LOW);
     digitalWrite(in4, HIGH);
-    digitalWrite(enB, HIGH);  
+    analogWrite(enB, 255);   // max speed
+
 }
 
 
@@ -56,12 +60,16 @@ void moveBackward(int in1, int in2, int enA, int in3, int in4, int enB) {
 
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
-    digitalWrite(enA, HIGH);  
+    analogWrite(enA, 125);   // low speed
+
+
 
 
     digitalWrite(in3, HIGH);
     digitalWrite(in4, LOW);
-    digitalWrite(enB, HIGH); 
+    analogWrite(enB, 125);   // low speed
+
+
 
 }
 
@@ -70,12 +78,13 @@ void moveRight(int in1, int in2, int enA, int in3, int in4, int enB) {
 
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
-    digitalWrite(enA, HIGH);  
+    analogWrite(enA, 180);  
 
 
     digitalWrite(in3, LOW);
     digitalWrite(in4, HIGH);
-    digitalWrite(enB, LOW); 
+    analogWrite(enB, 0);  
+
 
 }
 
@@ -83,12 +92,12 @@ void moveLeft(int in1, int in2, int enA, int in3, int in4, int enB) {
 
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
-    digitalWrite(enA, LOW);  
+    analogWrite(enA, 180);  
 
 
     digitalWrite(in3, LOW);
     digitalWrite(in4, HIGH);
-    digitalWrite(enB, HIGH); 
+    analogWrite(enB, 0); 
 
 }
 

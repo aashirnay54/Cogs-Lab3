@@ -55,8 +55,13 @@ void loop() {
                 Serial.println("IN PLACE");
                 break;
 
-            
+            case 'e':
+                stop(in1, in2, 3, 4, enA, enB);
+                Serial.println("STOP");
+                break;
+         
         }
+
     }
 
 
