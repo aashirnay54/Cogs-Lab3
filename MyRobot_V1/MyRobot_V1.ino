@@ -1,9 +1,7 @@
-
-
 #include <WiFiS3.h>  // Correct library for Uno R4 WiFi
 
-const char* ssid     = "nhu";
-const char* password = "44444444";
+const char* ssid     = "Aashir Nayyar's iPhone";
+const char* password = "Aashirnay54";
 
 int enA = 9;   // PWM pin for Motor A
 int in1 = 8;
@@ -13,10 +11,7 @@ int enB = 5;   // PWM pin for Motor B
 int in3 = 4;
 int in4 = 2;
 
-// --- Motor speed ---
-int motorSpeed = 200; // 0-255
 
-// ------------------- SETUP -------------------
 void setup() {
   Serial.begin(115200);
 
@@ -32,6 +27,13 @@ void setup() {
   // --- Connect to Wi-Fi ---
   Serial.print("Connecting to Wi-Fi...");
   WiFi.begin(ssid, password);
+
+  if (WiFi.status() == WL_NO_MODULE) {
+    Serial.println("❌ CRITICAL ERROR: WiFi Module NOT detected!");
+    Serial.println("You MUST update the firmware (Tools > Firmware Updater).");
+    while (true); // Freeze here
+  }
+  
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -76,7 +78,7 @@ void loop() {
                 break;
 
             case 'e':
-                stop(in1, in2, 3, 4, enA, enB);
+                stop(in1, in2, in3, in4, enA, enB);
                 Serial.println("STOP");
                 break;
          
