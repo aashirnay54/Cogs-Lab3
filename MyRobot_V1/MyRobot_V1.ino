@@ -1,80 +1,124 @@
 // MyRobot-V1.ino
-// This file must be named the same as your sketch folder
-int enA = 9;   // Enable pin for Motor A — must be a PWM-capable pin
-int in1 = 8;   // Direction control pin 1 for Motor A
-int in2 = 7;   // Direction control pin 2 for Motor A
 
-int enB = 5;     // Enable pin for Motor B
-int in3 = 4;   // Direction control pin 1 for motor B
-int in4 = 2;    // Direction control pin 2 for motor B
+// Motor A pins
+const int enA = 9;
+const int in1 = 8;
+const int in2 = 7;
 
-const 
-int D1 = 11;
-int D2 = 3;
+// Motor B pins
+const int enB = 5;
+const int in3 = 4;
+const int in4 = 2;
 
+// Encoder pins
+const int encA = 3;  // Use interrupt-capable pins if possible
+const int encB = 11;
+
+// Telemetry variables
+unsigned long lastPrintTime = 0;
+const int PRINT_INTERVAL = 50;  // Print every 50ms (20 Hz)
+char currentCommand = 'e';      // Track current movement command
+int motorASpeed = 0;
+int motorBSpeed = 0;
+
+// Encoder tick counters (volatile for interrupt use later)
+volatile long encoderACount = 0;
+volatile long encoderBCount = 0;
+int lastEncAState = 0;
+int lastEncBState = 0;
 
 void setup() {
+    // Motor pins
     pinMode(enA, OUTPUT);
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);
-
     pinMode(enB, OUTPUT);
     pinMode(in3, OUTPUT);
     pinMode(in4, OUTPUT);
-    pinMode(D1, INPUT_PULLUP);   // use pullups; pressed/LOW = 0
-    pinMode(D2, INPUT_PULLUP);
+    
+    // Encoder pins
+    pinMode(encA, INPUT_PULLUP);
+    pinMode(encB, INPUT_PULLUP);
+    
+    // Initialize encoder states
+    lastEncAState = digitalRead(encA);
+    lastEncBState = digitalRead(encB);
+    
     Serial.begin(115200);
-
-    Serial.begin(9600);
-
+    
+    // Print CSV header for easy parsing
+    Serial.println("time_ms,cmd,encA_raw,encB_raw,encA_count,encB_count,motorA_spd,motorB_spd");
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:
-
-    // Encoder Code
-
-    int v1 = digitalRead(D1);    // 0 or 1
-    int v2 = digitalRead(D2);    // 0 or 1
-    Serial.print(v1); Serial.print(',');
-    Serial.println(v2);          // newline-terminated
-    delay(5);                    // ~200 Hz (adjust as needed)
-
+    // Read encoder states
+    int encAState = digitalRead(encA);
+    int encBState = digitalRead(encB);
+    
+    // Simple edge counting (rising edge)
+    if (encAState != lastEncAState && encAState == HIGH) {
+        encoderACount++;
+    }
+    if (encBState != lastEncBState && encBState == HIGH) {
+        encoderBCount++;
+    }
+    lastEncAState = encAState;
+    lastEncBState = encBState;
+    
+    // Handle serial commands
     if (Serial.available()) {
         char c = Serial.read();
-
+        currentCommand = c;
+        
         switch (c) {
             case 'w':
                 moveForward(in1, in2, enA, in3, in4, enB);
-                Serial.println("FORWARD");
                 break;
-
             case 's':
                 moveBackward(in1, in2, enA, in3, in4, enB);
-                Serial.println("BACKWARD");
                 break;
-
             case 'a':
                 moveLeft(in1, in2, enA, in3, in4, enB);
-                Serial.println("LEFT");
                 break;
-
             case 'd':
                 moveRight(in1, in2, enA, in3, in4, enB);
-                Serial.println("RIGHT");
                 break;
-
             case 'q':
                 turnRobotInPlace(in1, in2, enA, in3, in4, enB);
-                Serial.println("IN PLACE");
                 break;
-
             case 'e':
                 stop(in1, in2, enA, in3, in4, enB);
-                Serial.println("STOP");
                 break;
-
+            case 'r':  // Reset encoder counts
+                encoderACount = 0;
+                encoderBCount = 0;
+                break;
         }
     }
     
+    // Print telemetry at fixed interval
+    unsigned long now = millis();
+    if (now - lastPrintTime >= PRINT_INTERVAL) {
+        printTelemetry(now, encAState, encBState);
+        lastPrintTime = now;
+    }
+}
+
+void printTelemetry(unsigned long timestamp, int encARaw, int encBRaw) {
+    // Format: time_ms,cmd,encA_raw,encB_raw,encA_count,encB_count,motorA_spd,motorB_spd
+    Serial.print(timestamp);
+    Serial.print(',');
+    Serial.print(currentCommand);
+    Serial.print(',');
+    Serial.print(encARaw);
+    Serial.print(',');
+    Serial.print(encBRaw);
+    Serial.print(',');
+    Serial.print(encoderACount);
+    Serial.print(',');
+    Serial.print(encoderBCount);
+    Serial.print(',');
+    Serial.print(motorASpeed);
+    Serial.print(',');
+    Serial.println(motorBSpeed);
 }
