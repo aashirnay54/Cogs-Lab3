@@ -11,51 +11,54 @@ const int in3 = 4;
 const int in4 = 2;
 
 // Encoder pins
-const int encA = 3;  // Use interrupt-capable pins if possible
+const int encA = 3;
 const int encB = 11;
 
-// Telemetry variables
+// Photocell
+const int photocellPin = A0;
+int photocellValue = 0;
+int threshold = 900;  // ADJUST THIS after calibration
+
+// State: 0=waiting, 1=driving, 2=stopped
+int state = 0;
+bool autonomousMode = false;
+
+// Telemetry
 unsigned long lastPrintTime = 0;
-const int PRINT_INTERVAL = 50;  // Print every 50ms (20 Hz)
-char currentCommand = 'e';      // Track current movement command
+const int PRINT_INTERVAL = 1000;
+char currentCommand = 'e';
 int motorASpeed = 0;
 int motorBSpeed = 0;
 
-// Encoder tick counters (volatile for interrupt use later)
+// Encoder
 volatile long encoderACount = 0;
 volatile long encoderBCount = 0;
 int lastEncAState = 0;
 int lastEncBState = 0;
 
 void setup() {
-    // Motor pins
     pinMode(enA, OUTPUT);
     pinMode(in1, OUTPUT);
     pinMode(in2, OUTPUT);
     pinMode(enB, OUTPUT);
     pinMode(in3, OUTPUT);
     pinMode(in4, OUTPUT);
-    
-    // Encoder pins
     pinMode(encA, INPUT_PULLUP);
     pinMode(encB, INPUT_PULLUP);
     
-    // Initialize encoder states
     lastEncAState = digitalRead(encA);
     lastEncBState = digitalRead(encB);
     
     Serial.begin(115200);
-    
-    // Print CSV header for easy parsing
-    Serial.println("time_ms,cmd,encA_raw,encB_raw,encA_count,encB_count,motorA_spd,motorB_spd");
+    Serial.println("time_ms,cmd,encA_count,encB_count,photocell,state");
 }
 
 void loop() {
-    // Read encoder states
+    // Read encoders
     int encAState = digitalRead(encA);
     int encBState = digitalRead(encB);
+
     
-    // Simple edge counting (rising edge)
     if (encAState != lastEncAState && encAState == HIGH) {
         encoderACount++;
     }
@@ -65,60 +68,71 @@ void loop() {
     lastEncAState = encAState;
     lastEncBState = encBState;
     
-    // Handle serial commands
+    // Read photocell
+    photocellValue = analogRead(photocellPin);
+    
+    // Handle commands
     if (Serial.available()) {
         char c = Serial.read();
         currentCommand = c;
         
-        switch (c) {
-            case 'w':
-                moveForward(in1, in2, enA, in3, in4, enB);
-                break;
-            case 's':
-                moveBackward(in1, in2, enA, in3, in4, enB);
-                break;
-            case 'a':
-                moveLeft(in1, in2, enA, in3, in4, enB);
-                break;
-            case 'd':
-                moveRight(in1, in2, enA, in3, in4, enB);
-                break;
-            case 'q':
-                turnRobotInPlace(in1, in2, enA, in3, in4, enB);
-                break;
-            case 'e':
-                stop(in1, in2, enA, in3, in4, enB);
-                break;
-            case 'r':  // Reset encoder counts
-                encoderACount = 0;
-                encoderBCount = 0;
-                break;
+        if (c == 'm') {
+            // Start autonomous mode
+            autonomousMode = true;
+            state = 0;
+        }
+        else if (c == 'e') {
+            // Stop and return to manual
+            autonomousMode = false;
+            state = 0;
+            stop();
+        }
+        else if (!autonomousMode) {
+            // Manual controls
+            switch (c) {
+                case 'w': moveForward(); break;
+                case 's': moveBackward(); break;
+                case 'a': moveLeft(); break;
+                case 'd': moveRight(); break;
+                case 'q': turnRobotInPlace(); break;
+                case 'r': encoderACount = 0; encoderBCount = 0; break;
+            }
         }
     }
     
-    // Print telemetry at fixed interval
+    // Autonomous behavior
+    if (autonomousMode) {
+        if (state == 0) {
+            // Waiting on white tape
+            if (photocellValue < threshold) {
+                moveForward();
+                state = 1;
+            }
+        }
+        else if (state == 1) {
+            // Driving on dark floor
+            if (photocellValue > threshold) {
+                stop();
+                state = 2;
+            }
+        }
+        // state 2: stay stopped
+    }
+    
+    // Print telemetry
     unsigned long now = millis();
     if (now - lastPrintTime >= PRINT_INTERVAL) {
-        printTelemetry(now, encAState, encBState);
+        Serial.print(now);
+        Serial.print(',');
+        Serial.print(currentCommand);
+        Serial.print(',');
+        Serial.print(encoderACount);
+        Serial.print(',');
+        Serial.print(encoderBCount);
+        Serial.print(',');
+        Serial.print(photocellValue);
+        Serial.print(',');
+        Serial.println(state);
         lastPrintTime = now;
     }
-}
-
-void printTelemetry(unsigned long timestamp, int encARaw, int encBRaw) {
-    // Format: time_ms,cmd,encA_raw,encB_raw,encA_count,encB_count,motorA_spd,motorB_spd
-    Serial.print(timestamp);
-    Serial.print(',');
-    Serial.print(currentCommand);
-    Serial.print(',');
-    Serial.print(encARaw);
-    Serial.print(',');
-    Serial.print(encBRaw);
-    Serial.print(',');
-    Serial.print(encoderACount);
-    Serial.print(',');
-    Serial.print(encoderBCount);
-    Serial.print(',');
-    Serial.print(motorASpeed);
-    Serial.print(',');
-    Serial.println(motorBSpeed);
-}
+}   

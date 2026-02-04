@@ -22,13 +22,13 @@
 
 
 
-void drive(int in1, int in2, int enA) {
+void drive() {
     digitalWrite(in1, LOW);   // Direction control: IN1
     digitalWrite(in2, HIGH);  // Direction control: IN2 (sets rotation direction)
     digitalWrite(enA, HIGH);  // Enable motor driver
 }
 
-void stop(int in1, int in2, int enA, int in3, int in4, int enB) {
+void stop() {
     digitalWrite(in1, LOW);   // Direction control: IN1
     digitalWrite(in2, HIGH);  // Direction control: IN2 (sets rotation direction)
     analogWrite(enA, 0);   // Disable motor driver
@@ -40,7 +40,7 @@ void stop(int in1, int in2, int enA, int in3, int in4, int enB) {
 
 // TODO: add your own driving functions here
 
-void moveForward(int in1, int in2, int enA, int in3, int in4, int enB) {
+void moveForward() {
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
     analogWrite(enA, 255);  
@@ -52,7 +52,7 @@ void moveForward(int in1, int in2, int enA, int in3, int in4, int enB) {
 }
 
 
-void moveBackward(int in1, int in2, int enA, int in3, int in4, int enB) {
+void moveBackward() {
 
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
@@ -64,7 +64,7 @@ void moveBackward(int in1, int in2, int enA, int in3, int in4, int enB) {
 
 }
 
-void moveRight(int in1, int in2, int enA, int in3, int in4, int enB) {
+void moveRight() {
 
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
@@ -76,7 +76,7 @@ void moveRight(int in1, int in2, int enA, int in3, int in4, int enB) {
 
 }
 
-void moveLeft(int in1, int in2, int enA, int in3, int in4, int enB) {
+void moveLeft() {
 
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
@@ -88,7 +88,7 @@ void moveLeft(int in1, int in2, int enA, int in3, int in4, int enB) {
 
 }
 
-void turnRobotInPlace(int in1, int in2, int enA, int in3, int in4, int enB) {
+void turnRobotInPlace() {
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
     digitalWrite(enA, HIGH);
