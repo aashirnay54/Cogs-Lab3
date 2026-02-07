@@ -56,11 +56,11 @@ void moveBackward() {
 
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
-    analogWrite(enA, 150);  
+    analogWrite(enA, 200);  
 
     digitalWrite(in3, HIGH);
     digitalWrite(in4, LOW);
-    analogWrite(enB, 150);  
+    analogWrite(enB, 200);  
 
 }
 
@@ -91,10 +91,10 @@ void moveLeft() {
 void turnRobotInPlace() {
     digitalWrite(in1, LOW);
     digitalWrite(in2, HIGH);
-    digitalWrite(enA, HIGH);
+    analogWrite(enA, 255);
 
     digitalWrite(in3, HIGH);
     digitalWrite(in4, LOW);
-    digitalWrite(enB, HIGH); 
+    analogWrite(enB, 255);
 
 }
