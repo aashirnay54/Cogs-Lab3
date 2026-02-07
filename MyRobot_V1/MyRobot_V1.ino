@@ -17,24 +17,31 @@ const int encB = 11;
 // Photocell
 const int photocellPin = A0;
 int photocellValue = 0;
-int threshold = 900;  // ADJUST THIS after calibration
+int threshold = 900;
 
-// State: 0=waiting, 1=driving, 2=stopped
+// State
 int state = 0;
 bool autonomousMode = false;
 
 // Telemetry
 unsigned long lastPrintTime = 0;
-const int PRINT_INTERVAL = 1000;
+const int PRINT_INTERVAL = 500;
 char currentCommand = 'e';
-int motorASpeed = 0;
-int motorBSpeed = 0;
+
 
 // Encoder
 volatile long encoderACount = 0;
 volatile long encoderBCount = 0;
 int lastEncAState = 0;
 int lastEncBState = 0;
+
+// Recording/Replay
+bool recording = false;
+bool replaying = false;
+unsigned long recordStart = 0;
+unsigned long replayStart = 0;
+String recordedCommands = "";
+int replayPos = 0;
 
 void setup() {
     pinMode(enA, OUTPUT);
@@ -54,10 +61,11 @@ void setup() {
 }
 
 void loop() {
+    unsigned long now = millis();
+    
     // Read encoders
     int encAState = digitalRead(encA);
     int encBState = digitalRead(encB);
-
     
     if (encAState != lastEncAState && encAState == HIGH) {
         encoderACount++;
@@ -71,12 +79,37 @@ void loop() {
     // Read photocell
     photocellValue = analogRead(photocellPin);
     
-    // Handle commands
-    if (Serial.available()) {
+    // Handle commands (only if not replaying)
+    if (Serial.available() && !replaying) {
         char c = Serial.read();
         currentCommand = c;
         
-        if (c == 'm') {
+        if (c == 'x') {
+            // Start recording
+            recording = true;
+            recordStart = now;
+            recordedCommands = "";
+            encoderACount = 0;
+            encoderBCount = 0;
+            Serial.println("# RECORDING STARTED");
+        }
+        else if (c == 'z') {
+            // Stop recording
+            recording = false;
+            Serial.println("# RECORDING STOPPED");
+            Serial.print("# Commands: ");
+            Serial.println(recordedCommands);
+        }
+        else if (c == 'p') {
+            // Start replay
+            replaying = true;
+            replayStart = now;
+            replayPos = 0;
+            encoderACount = 0;
+            encoderBCount = 0;
+            Serial.println("# REPLAYING");
+        }
+        else if (c == 'm') {
             // Start autonomous mode
             autonomousMode = true;
             state = 0;
@@ -89,18 +122,44 @@ void loop() {
         }
         else if (!autonomousMode) {
             // Manual controls
-            switch (c) {
-                case 'w': moveForward(); break;
-                case 's': moveBackward(); break;
-                case 'a': moveLeft(); break;
-                case 'd': moveRight(); break;
-                case 'q': turnRobotInPlace(); break;
-                case 'r': encoderACount = 0; encoderBCount = 0; break;
+            executeCommand(c);
+            
+            // Record command with timestamp
+            if (recording) {
+                unsigned long elapsed = now - recordStart;
+                recordedCommands += String(elapsed) + ":" + c + ",";
             }
         }
     }
     
-    // Autonomous behavior
+    // Replay logic
+    if (replaying) {
+        unsigned long elapsed = now - replayStart;
+        
+        // Parse and execute next command if it's time
+        int nextColon = recordedCommands.indexOf(':', replayPos);
+        if (nextColon > 0) {
+            unsigned long cmdTime = recordedCommands.substring(replayPos, nextColon).toInt();
+            
+            if (elapsed >= cmdTime) {
+                char cmd = recordedCommands.charAt(nextColon + 1);
+                executeCommand(cmd);
+                currentCommand = cmd;
+                
+                // Move to next command
+                replayPos = recordedCommands.indexOf(',', nextColon) + 1;
+                
+                // Check if done
+                if (replayPos >= recordedCommands.length() || replayPos == 0) {
+                    replaying = false;
+                    stop();
+                    Serial.println("# REPLAY COMPLETE");
+                }
+            }
+        }
+    }
+    
+    // Autonomous behavior (photocell)
     if (autonomousMode) {
         if (state == 0) {
             // Waiting on white tape
@@ -120,7 +179,6 @@ void loop() {
     }
     
     // Print telemetry
-    unsigned long now = millis();
     if (now - lastPrintTime >= PRINT_INTERVAL) {
         Serial.print(now);
         Serial.print(',');
@@ -135,4 +193,16 @@ void loop() {
         Serial.println(state);
         lastPrintTime = now;
     }
-}   
+}
+
+void executeCommand(char c) {
+    switch (c) {
+        case 'w': moveForward(); break;
+        case 's': moveBackward(); break;
+        case 'a': moveLeft(); break;
+        case 'd': moveRight(); break;
+        case 'q': turnRobotInPlace(); break;
+        case 'r': encoderACount = 0; encoderBCount = 0; break;
+        case 'e': stop(); break;
+    }
+}
