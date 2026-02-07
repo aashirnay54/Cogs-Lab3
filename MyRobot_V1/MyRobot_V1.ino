@@ -17,7 +17,19 @@ const int encB = 11;
 // Photocell
 const int photocellPin = A0;
 int photocellValue = 0;
-int threshold = 58;
+int Lightthreshold = 140;
+int darkThreshold = 125;
+int hysteresis = 10;  // Prevents flickering between states
+
+// Moving average filter for photocell
+const int NUM_READINGS = 10;
+int photocellReadings[NUM_READINGS];
+int readIndex = 0;
+long photocellTotal = 0;
+
+// Calibration
+int minReading = 1023;
+int maxReading = 0;
 
 // State
 int state = 0;
@@ -27,7 +39,6 @@ bool autonomousMode = false;
 unsigned long lastPrintTime = 0;
 const int PRINT_INTERVAL = 1023;
 char currentCommand = 'e';
-
 
 // Encoder
 volatile long encoderACount = 0;
@@ -43,6 +54,12 @@ unsigned long replayStart = 0;
 String recordedCommands = "";
 int replayPos = 0;
 
+
+// PhotCell Changes
+
+int prev = 0;
+
+
 void setup() {
     pinMode(enA, OUTPUT);
     pinMode(in1, OUTPUT);
@@ -56,16 +73,16 @@ void setup() {
     lastEncAState = digitalRead(encA);
     lastEncBState = digitalRead(encB);
     
+    // Initialize moving average array
+    for (int i = 0; i < NUM_READINGS; i++) {
+        photocellReadings[i] = 0;
+    }
+    
     Serial.begin(115200);
     Serial.println("time_ms,cmd,encA_count,encB_count,photocell,state");
 }
 
 void loop() {
-
-    // Serial.println(analogRead(A0));
-    // delay(300);
-    // return;
-
     unsigned long now = millis();
     
     // Read encoders
@@ -81,18 +98,13 @@ void loop() {
     lastEncAState = encAState;
     lastEncBState = encBState;
     
-    // Read photocell
-    long sum = 0;
-
-    for (int i = 0; i<10; i++) {
-        sum += analogRead(A0);
-        delayMicroseconds(300);
-    }
-
-    photocellValue = sum / 10;
+    // Read photocell with moving average filter
+    photocellTotal -= photocellReadings[readIndex];
+    photocellReadings[readIndex] = analogRead(photocellPin);
+    photocellTotal += photocellReadings[readIndex];
+    readIndex = (readIndex + 1) % NUM_READINGS;
+    photocellValue = photocellTotal / NUM_READINGS;
     
-    delay(300);
-
     // Handle commands (only if not replaying)
     if (Serial.available() && !replaying) {
         char c = Serial.read();
@@ -123,16 +135,24 @@ void loop() {
             encoderBCount = 0;
             Serial.println("# REPLAYING");
         }
+        else if (c == 'c') {
+            // Calibrate photocell
+            calibratePhotocell();
+        }
         else if (c == 'm') {
             // Start autonomous mode
+            stop();  // Stop any previous motion
             autonomousMode = true;
             state = 0;
+            prev = photocellValue;
+            Serial.println("# AUTONOMOUS MODE STARTED");
         }
         else if (c == 'e') {
             // Stop and return to manual
             autonomousMode = false;
             state = 0;
             stop();
+            Serial.println("# MANUAL MODE");
         }
         else if (!autonomousMode) {
             // Manual controls
@@ -173,24 +193,29 @@ void loop() {
         }
     }
     
-    // Autonomous behavior (photocell)
+    int diff = photocellValue - prev; //+ dark -> light, - if light to dark
+
+    
+
     if (autonomousMode) {
         if (state == 0) {
             // Waiting on white tape
-            if (photocellValue > threshold) {
-                state = 1;
+            if (diff >= 20) { 
                 moveForward();
+                state = 1;
+                prev = photocellValue;  
+                Serial.println("# Transition: dark→light, moving");
             }
         }
         else if (state == 1) {
             // Driving on dark floor
-            if (photocellValue < threshold) {
-                state = 0;
+            if (diff <= -20) {
                 stop();
+                state = 0;
+                prev = photocellValue;  
+                Serial.println("# Transition: light→dark, stopping");
             }
         }
-
-        
     }
     
     // Print telemetry
@@ -199,16 +224,14 @@ void loop() {
         Serial.print(',');
         Serial.print(currentCommand);
         Serial.print(',');
-        // Serial.print("Encoder A: ");
         Serial.print(encoderACount);
         Serial.print(',');
-        // Serial.print("Encoder B: ");
         Serial.print(encoderBCount);
         Serial.print(',');
-        // Serial.print("Photocell: ");
         Serial.print(photocellValue);
         Serial.print(',');
-        Serial.println(state); 
+        Serial.println(state);
+        lastPrintTime = now;
     }
 }
 
@@ -222,4 +245,33 @@ void executeCommand(char c) {
         case 'r': encoderACount = 0; encoderBCount = 0; break;
         case 'e': stop(); break;
     }
+}
+
+void calibratePhotocell() {
+    Serial.println("# Calibrating photocell...");
+    Serial.println("# Move robot over dark and light areas");
+    
+    minReading = 1023;
+    maxReading = 0;
+    
+    unsigned long startTime = millis();
+    while (millis() - startTime < 5000) {  // 5 second calibration
+        int val = analogRead(photocellPin);
+        if (val < minReading) minReading = val;
+        if (val > maxReading) maxReading = val;
+        delay(50);
+    }
+    
+    Lightthreshold = (minReading + maxReading) / 2;
+    hysteresis = (maxReading - minReading) / 10;  // 10% of range
+    
+    Serial.print("# Min: ");
+    Serial.print(minReading);
+    Serial.print(", Max: ");
+    Serial.print(maxReading);
+    Serial.print(", Threshold: ");
+    Serial.print(Lightthreshold);
+    Serial.print(", Hysteresis: ");
+    Serial.println(hysteresis);
+    Serial.println("# Calibration complete");
 }
