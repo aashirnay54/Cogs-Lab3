@@ -39,7 +39,7 @@ int   usReadIndex  = 0;
 float usTotal      = 0.0;
 
 // P-Controller parameters
-const float SET_POINT = 0;   // Target distance in cm
+const float SET_POINT = 25;   // Target distance in cm
 const float Kp        = 5.0;    // Proportional gain — tune this!
 const int   DEAD_ZONE = 3;      // ±3 cm window where robot holds still
 const int   MIN_PWM   = 60;     // Minimum PWM to overcome motor friction
@@ -364,7 +364,7 @@ void executeCommand(char c) {
 // Variable-speed functions (used by P-controller)
 void moveForwardPWM(int speed) {
     digitalWrite(in1, HIGH);
-    digitalWrite(in2, HIGH);
+    digitalWrite(in2, LOW);
     analogWrite(enA, speed);
     
     digitalWrite(in3, HIGH);
