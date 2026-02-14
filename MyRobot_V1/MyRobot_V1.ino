@@ -282,7 +282,7 @@ void loop() {
     
     // ── Follow-Me P-Controller behavior ──
     if (followMode) {
-        lastError  = lastFilteredDistance - SET_POINT;
+        lastError  = SET_POINT - lastFilteredDistance;
         lastOutput = Kp * lastError;
         
         if (abs(lastError) < DEAD_ZONE) {
