@@ -40,8 +40,8 @@ float usTotal      = 0.0;
 
 // P-Controller parameters
 const float SET_POINT = 25;   // Target distance in cm
-const float Kp        = 5.0;    // Proportional gain — tune this!
-const int   DEAD_ZONE = 3;      // ±3 cm window where robot holds still
+const float Kp        = 10.0;   // Proportional gain — tune this!
+const int   DEAD_ZONE = 2;      // ±3 cm window where robot holds still
 const int   MIN_PWM   = 60;     // Minimum PWM to overcome motor friction
 const int   MAX_PWM   = 255;    // Maximum PWM output
 const float MAX_RANGE  = 200.0; // Ignore readings beyond 200 cm
@@ -139,8 +139,10 @@ void loop() {
     // Read ultrasonic with moving average filter (always, so telemetry has data)
     // Read ultrasonic every 50ms (not every loop) to avoid pin/timing conflicts
     static unsigned long lastUsReadTime = 0;
+
     if (now - lastUsReadTime >= 50) {
         float rawDistance = readUltrasonic();
+
     if (rawDistance >= MIN_RANGE && rawDistance <= MAX_RANGE) {
         usTotal -= usReadings[usReadIndex];
         usReadings[usReadIndex] = rawDistance;
@@ -148,6 +150,7 @@ void loop() {
         usReadIndex = (usReadIndex + 1) % US_NUM_READINGS;
     }
     lastFilteredDistance = usTotal / US_NUM_READINGS;
+
     lastUsReadTime = now;
     }
     // Handle commands (only if not replaying)
@@ -282,6 +285,15 @@ void loop() {
     
     // ── Follow-Me P-Controller behavior ──
     if (followMode) {
+        // Serial.print("FOLLOW | Dist: ");
+        // Serial.print(lastFilteredDistance);
+        // Serial.print(" | Err: ");
+        // Serial.print(lastError);
+        // Serial.print(" | Out: ");
+        // Serial.print(lastOutput);
+        // Serial.print(" | DeadZone: ");
+        // Serial.println(abs(lastError) < DEAD_ZONE ? "YES" : "NO");
+
         lastError  = SET_POINT - lastFilteredDistance;
         lastOutput = Kp * lastError;
         
@@ -291,12 +303,14 @@ void loop() {
         }
         else if (lastOutput > 0) {
             // Object is farther than set point → drive forward
-            int pwm = constrain((int)abs(lastOutput), 40, 100);
+            int pwm = constrain((int)abs(lastOutput), 30, 60);  
             moveForwardPWM(pwm);
+
+            
         }
         else {
             // Object is closer than set point → drive backward
-            int pwm = constrain((int)abs(lastOutput), 40, 100);
+            int pwm = constrain((int)abs(lastOutput), 30, 60);
             moveBackwardPWM(pwm);
         }
     }
@@ -333,15 +347,22 @@ float readUltrasonic() {
     digitalWrite(trigPin, HIGH);
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);
+
+    delayMicroseconds(2);
     
-    long duration = pulseIn(echoPin, HIGH, 38000);
+    long duration = pulseIn(echoPin, HIGH, 60000);
     
-    if (duration == 0) {
-        return MAX_RANGE + 1;  // No echo → out of range
+    if (duration == 0 || duration < 150) {
+        return -1;  // No echo → out of range
     }
     
     // Speed of sound ≈ 0.0343 cm/µs, divide by 2 for round trip
     float distance = (duration * 0.0343) / 2.0;
+
+    if (distance < MIN_RANGE || distance > MAX_RANGE) {
+        return -1;
+    }
+    
     return distance;
 }
 
@@ -363,6 +384,17 @@ void executeCommand(char c) {
 
 // Variable-speed functions (used by P-controller)
 void moveForwardPWM(int speed) {
+    digitalWrite(in1, LOW); 
+    digitalWrite(in2, HIGH);
+    analogWrite(enA, speed);
+    
+    digitalWrite(in3, LOW);
+    digitalWrite(in4, HIGH);
+    analogWrite(enB, speed);
+
+}
+
+void moveBackwardPWM(int speed) {
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
     analogWrite(enA, speed);
@@ -370,16 +402,7 @@ void moveForwardPWM(int speed) {
     digitalWrite(in3, HIGH);
     digitalWrite(in4, LOW);
     analogWrite(enB, speed);
-}
 
-void moveBackwardPWM(int speed) {
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, HIGH);
-    analogWrite(enA, speed);
-    
-    digitalWrite(in3, LOW);
-    digitalWrite(in4, HIGH);
-    analogWrite(enB, speed);
 }
 
 // ──────────────────── Calibration ────────────────────────────────
